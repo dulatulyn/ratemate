@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
 from ratemate_app.schemas.user import UserCreate
 from ratemate_app.models.user import User
@@ -31,7 +31,7 @@ class UserService:
 
     @staticmethod
     async def delete_user(db: AsyncSession, user: User) -> None:
-        await db.delete(user)
+        await db.execute(delete(User).where(User.id == user.id))
         await db.commit()
 
     @staticmethod

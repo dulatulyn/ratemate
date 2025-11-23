@@ -13,6 +13,15 @@ class CommentCreate(BaseModel):
             raise ValueError('Content must not be empty')
         return v
 
+    @field_validator('parent_id')
+    @classmethod
+    def normalize_parent_id(cls, v: int | None):
+        if v is None:
+            return None
+        if v <= 0:
+            return None
+        return v
+
 class CommentRead(BaseModel):
     id: int
     user_id: int
@@ -22,3 +31,18 @@ class CommentRead(BaseModel):
     parent_id: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class RatingRequest(BaseModel):
+    score: int
+
+    @field_validator('score')
+    @classmethod
+    def validate_score(cls, v: int) -> int:
+        if v < 1 or v > 10:
+            raise ValueError("Score must be between 1 and 10")
+        return v
+
+class RatingResponse(BaseModel):
+    success: bool
+
+    

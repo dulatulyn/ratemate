@@ -37,14 +37,14 @@ async def set_comment_rating(db: AsyncSession, user_id: int, comment_id: int, sc
     return rating
 
 async def get_post_rating_summary(db: AsyncSession, post_id: int) -> dict:
-    q = await db.execute(func.avg(Rating.score), func.count(Rating.id).where(Rating.post_id == post_id))
+    q = await db.execute(select(func.avg(Rating.score), func.count(Rating.id)).where(Rating.post_id == post_id))
 
     avg, cnt = q.one()
     return {"post_id": post_id, "average": float(avg) if avg is not None else 0.0, "count": int(cnt)}
 
 
 async def get_comment_rating_summary(db: AsyncSession, comment_id: int) -> dict:
-    q = await db.execute(func.avg(Rating.score), func.count(Rating.id).where(Rating.comment_id == comment_id))
+    q = await db.execute(select(func.avg(Rating.score), func.count(Rating.id)).where(Rating.comment_id == comment_id))
 
     avg, cnt = q.one()
-    return {"post_id": post_id, "average": float(avg) if avg is not None else 0.0, "count": int(cnt)}
+    return {"comment_id": comment_id, "average": float(avg) if avg is not None else 0.0, "count": int(cnt)}

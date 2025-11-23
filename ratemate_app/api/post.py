@@ -1,16 +1,22 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
+from fastapi.security import HTTPBearer
 
 from ratemate_app.db.session import get_db
 from ratemate_app.schemas.post import PostCreate, PostRead
+from ratemate_app.schemas.comment import RatingRequest, RatingResponse
 from ratemate_app.auth.security import decode_access_token
 from ratemate_app.services.user import UserService
 from ratemate_app.services.post import create_post
+from ratemate_app.models.post import Post
 
 router = APIRouter()
 
-@router.post("/", response_model=PostRead, status_code=status.HTTP_201_CREATED)
+security = HTTPBearer()
+
+@router.post("/", response_model=PostRead, status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(security)])
 async def create_post_endpoint(
     payload: PostCreate,
     authorization: Optional[str] = Header(None),
@@ -41,8 +47,11 @@ async def create_post_endpoint(
     return post
         
 
-@router.post("/{post_id}/rate", status_code=status.HTTP_201_CREATED)
-async def rate_post(post_id: int, body: dict, authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
+@router.post("/{post_id}/rate",
+             status_code=status.HTTP_201_CREATED,
+             response_model=RatingResponse,
+             dependencies=[Depends(security)])
+async def rate_post(post_id: int, rating: RatingRequest, authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
     
@@ -58,20 +67,24 @@ async def rate_post(post_id: int, body: dict, authorization: Optional[str] = Hea
     if not username:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
     
-    from ratemate_app.services.rating import set_post_rating
-    score = body.get("score")
-
-    if not isinstance(score, int):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="score must be integer")
+    from ratemate_app.services.ratings import set_post_rating
     
-    await set_post_rating(db, user.id, post_id, score)
+    user = await UserService.get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    existing_post = await db.get(Post, post_id)
+    if not existing_post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+    await set_post_rating(db, user.id, post_id, rating.score)
 
     return {"success": True}
 
 
-@router.get("{post_id}/rating")
+@router.get("/{post_id}/rating")
 async def get_post_rating(post_id: int, db: AsyncSession = Depends(get_db)):
-    from ratemate_app.services.rating import get_post_rating_summary
+    from ratemate_app.services.ratings import get_post_rating_summary
 
     summary = await get_post_rating_summary(db, post_id)
 

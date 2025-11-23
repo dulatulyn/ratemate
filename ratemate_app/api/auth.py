@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ratemate_app.core.config import settings
@@ -12,6 +13,8 @@ from typing import Optional
 import logging
 
 logger = logging.getLogger(__name__)
+
+security = HTTPBearer()
 
 router = APIRouter()
 
@@ -79,13 +82,13 @@ async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     return {"access_token": access_token,
             "token_type": "bearer"}
 
-@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(security)])
 async def delete_me(authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
     
     token = authorization.split(" ", 1)[1]
-
+    
     try:
         payload = decode_access_token(token)
     except Exception:

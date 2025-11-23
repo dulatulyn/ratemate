@@ -1,3 +1,7 @@
+import os, sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
 import pytest
 from httpx import AsyncClient, ASGITransport
 from ratemate_app.main import app
@@ -31,7 +35,7 @@ async def test_register_duplicate_username_and_cleanup():
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         status1, data1 = await register(ac, "user_dup", "user_dup@example.com", "secret")
         assert status1 == 201
-
+        
         status2, _ = await register(ac, "user_dup", "other@example.com", "secret")
         assert status2 == 400
 

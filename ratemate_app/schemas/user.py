@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, ConfigDict
 from datetime import datetime
 import re
 
@@ -19,3 +19,9 @@ class UserCreate(UserBase):
 class UserLogin(BaseModel):
     username: str
     password: str
+
+
+class UserSummary(BaseModel):
+    id: int
+    username: str
+    model_config = ConfigDict(from_attributes=True)

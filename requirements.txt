@@ -12,6 +12,7 @@ asyncpg
 typing
 greenlet
 jose
+pathlib
 
 httpx
 
