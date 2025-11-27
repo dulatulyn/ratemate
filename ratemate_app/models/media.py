@@ -9,7 +9,8 @@ class Media(Base):
     __tablename__ = "media"
 
     id = Column(Integer, primary_key=True, index=True)
-    post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=True, index=True)
+    comment_id = Column(Integer, ForeignKey("comments.id", ondelete="CASCADE"), nullable=True, index=True)
     url = Column(String, nullable=False)
     media_type = Column(String, nullable=False)
 
@@ -17,6 +18,8 @@ class Media(Base):
 
     __table_args__ = (
         UniqueConstraint("post_id", "url", name="uq_media_post_url"),
+        UniqueConstraint("comment_id", "url", name="uq_media_comment_url"),
     )
 
     post = relationship("Post", back_populates="media")
+    comment = relationship("Comment", back_populates="media")

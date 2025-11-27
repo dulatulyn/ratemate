@@ -1,6 +1,7 @@
-from pydantic import BaseModel, field_validator, ConfigDict
+from pydantic import BaseModel, field_validator, ConfigDict, field_serializer
 from typing import Optional
 from datetime import datetime
+from ratemate_app.schemas.media import MediaRead
 
 class PostBase(BaseModel):
     title: Optional[str] = None
@@ -22,5 +23,11 @@ class PostRead(PostBase):
     title: Optional[str] = None
     content: str
     created_at: datetime
+    media: list[MediaRead] = []
+    media_urls: list[str] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer('media_urls')
+    def _ser_media_urls(self, v):
+        return v if v else [m.urls for m in getattr(self, 'media', [])]

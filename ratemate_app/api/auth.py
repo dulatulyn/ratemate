@@ -49,6 +49,7 @@ async def login_for_access_tokens(
         "token_type": "bearer"
     }
     
+    
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     logger.info(f"Registration attempt for user: {user.username}")
@@ -81,6 +82,7 @@ async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     logger.info(f"Successful registration for user: {user.username}")
     return {"access_token": access_token,
             "token_type": "bearer"}
+
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(security)])
 async def delete_me(authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):

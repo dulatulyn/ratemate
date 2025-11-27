@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from ratemate_app.models.comment import Comment
 from ratemate_app.schemas.comment import CommentCreate
 
@@ -31,3 +31,7 @@ async def list_post_comments(db: AsyncSession, post_id: int, limit: int = 100, o
         .offset(offset)
     )
     return result.scalars().all()
+
+async def delete_comment(db: AsyncSession, comment: Comment) -> None:
+    await db.execute(delete(Comment).where(Comment.id == comment.id))
+    await db.commit()

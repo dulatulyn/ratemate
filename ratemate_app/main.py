@@ -6,8 +6,11 @@ from ratemate_app.api.auth import router as auth_router
 from ratemate_app.api.post import router as posts_router
 from ratemate_app.api.comment import router as comments_router
 from ratemate_app.api.follow import router as follows_router
-
+from ratemate_app.api.chat import router as chats_router
 from ratemate_app.db.session import init_db
+from ratemate_app.db.base import import_models
+
+import_models()
 
 app = FastAPI(
     title="RateMate",
@@ -33,6 +36,7 @@ app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
 app.include_router(posts_router, prefix="/posts", tags=["Posts"])
 app.include_router(comments_router, prefix="/comments", tags=["Comments"])
 app.include_router(follows_router, prefix="/follows", tags=["Follows"])
+app.include_router(chats_router, prefix="/chats", tags=["Chats"])
 
 from fastapi.openapi.utils import get_openapi
 

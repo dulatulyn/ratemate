@@ -15,7 +15,8 @@ class MediaCreate(BaseModel):
 
 class MediaRead(BaseModel):
     id: int
-    post_id: int
+    post_id: int | None = None
+    comment_id: int | None = None
     url: str
     media_type: str
     created_at: datetime

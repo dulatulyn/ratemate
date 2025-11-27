@@ -20,4 +20,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
 
+    AZURE_STORAGE_CONNECTION_STRING: str | None = None
+    AZURE_STORAGE_CONTAINER: str | None = None
+
 settings = Settings()

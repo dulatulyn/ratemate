@@ -25,3 +25,4 @@ class Comment(Base):
     parent = relationship("Comment", remote_side=[id], back_populates="replies")
     replies = relationship("Comment", back_populates="parent")
     ratings = relationship("Rating", back_populates="comment", cascade="all, delete-orphan")
+    media = relationship("Media", back_populates="comment", cascade="all, delete-orphan")

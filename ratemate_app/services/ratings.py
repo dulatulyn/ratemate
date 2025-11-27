@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, delete
 from ratemate_app.models.rating import Rating
 
 async def set_post_rating(db: AsyncSession, user_id: int, post_id: int, score: int) -> Rating:
@@ -48,3 +48,13 @@ async def get_comment_rating_summary(db: AsyncSession, comment_id: int) -> dict:
 
     avg, cnt = q.one()
     return {"comment_id": comment_id, "average": float(avg) if avg is not None else 0.0, "count": int(cnt)}
+
+
+async def delete_post_rating(db: AsyncSession, user_id: int, post_id: int) -> None:
+    await db.execute(delete(Rating).where(Rating.user_id == user_id, Rating.post_id == post_id))
+    await db.commit()
+
+
+async def delete_comment_rating(db: AsyncSession, user_id: int, comment_id: int) -> None:
+    await db.execute(delete(Rating).where(Rating.user_id == user_id, Rating.comment_id == comment_id))
+    await db.commit()

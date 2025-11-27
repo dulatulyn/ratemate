@@ -33,7 +33,7 @@ async def follow(user_id: int, authorization: Optional[str] = Header(None), db: 
     if not me:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    target = await db.get(type(me), user_id)
+    target = await db.get(User, user_id)
     if not target:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target not found")
 
@@ -70,6 +70,7 @@ async def unfollow(user_id: int, authorization: Optional[str] = Header(None), db
 
     return {"success": True}
 
+
 @router.get("/me/following", response_model=list[UserSummary], dependencies=[Depends(security)])
 async def get_my_following(authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
     if not authorization or not authorization.lower().startswith("bearer "):
@@ -91,6 +92,7 @@ async def get_my_following(authorization: Optional[str] = Header(None), db: Asyn
     
     users = await list_following(db, me.id)
     return users
+
 
 @router.get("/me/followers", response_model=list[UserSummary], dependencies=[Depends(security)])
 async def get_my_followers(authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
@@ -114,6 +116,7 @@ async def get_my_followers(authorization: Optional[str] = Header(None), db: Asyn
     users = await list_followers(db, me.id)
     return users
 
+
 @router.get("/common_with/{user_id}", response_model=list[UserSummary], dependencies=[Depends(security)])
 async def get_common_following(user_id: int, authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
     if not authorization or not authorization.lower().startswith("bearer "):
@@ -133,7 +136,7 @@ async def get_common_following(user_id: int, authorization: Optional[str] = Head
     if not me:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    target = await db.get(type(me), user_id)
+    target = await db.get(User, user_id)
     if not target:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target not found")
 
