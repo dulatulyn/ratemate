@@ -79,7 +79,7 @@ async def delete_media(db: AsyncSession, media_id: int) -> None:
     await db.execute(delete(Media).where(Media.id == media_id))
     await db.commit()
 
-async def delete_all_post_media(db: AsyncSession, post_id: int) -> None:
+async def delete_all_post_media_blobs(db: AsyncSession, post_id: int) -> None:
     medias = await list_post_media(db, post_id)
     if not medias:
         return
@@ -87,7 +87,7 @@ async def delete_all_post_media(db: AsyncSession, post_id: int) -> None:
     container = await _get_container_client()
     for m in medias:
         try:
-            path = urlparse(media.url).path
+            path = urlparse(m.url).path
             prefix = "/" + settings.AZURE_STORAGE_CONTAINER + "/"
             blob_name = path[len(prefix):] if path.startswith(prefix) else path.lstrip("/")
             await container.delete_blob(blob_name, delete_snapshots="include")
@@ -136,8 +136,36 @@ async def upload_comment_media_bulk(db: AsyncSession, comment_id: int, files: li
         raise ValueError("too_many_files")
     return [await upload_comment_media(db, comment_id, f) for f in files]
 
+async def upload_user_avatar(user_id: int, file: UploadFile) -> tuple[str, str]:
+    container = await _get_container_client()
+    filename = _sanitize_filename(file.filename or "avatar")
+    blob_name = f"users/{user_id}/avatar/{uuid4()}-{filename}"
+    blob_client = container.get_blob_client(blob_name)
+    data = await file.read()
+    media_type = "image" if (file.content_type or "").startswith("image/") else ("video" if (file.content_type or "").startswith("video/") else "file")
+
+    await blob_client.upload_blob(
+        data,
+        overwrite=True,
+        content_settings=ContentSettings(content_type=file.content_type or "application/octet-stream")
+    )
+    return blob_client.url, media_type
+
+async def delete_user_avatar_blob(url: str) -> None:
+    if not url:
+        return
+    container = await _get_container_client()
+    try:
+        path = urlparse(url).path
+        prefix = "/" + settings.AZURE_STORAGE_CONTAINER + "/"
+        blob_name = path[len(prefix):] if path.startswith(prefix) else path.lstrip("/")
+
+        await container.delete_blob(blob_name, delete_snapshots="include")
+    except(ResourceNotFoundError, ValueError):
+        return
+
 async def list_comment_media(db: AsyncSession, comment_id: int) -> list[Media]:
-    result = await db.execute(select(Media).where(Media.Comment_id == comment_id))
+    result = await db.execute(select(Media).where(Media.comment_id == comment_id))
     return result.scalars().all()
 
 async def delete_all_comment_media_blobs(db: AsyncSession, comment_id: int) -> None:
@@ -147,7 +175,7 @@ async def delete_all_comment_media_blobs(db: AsyncSession, comment_id: int) -> N
     container = await _get_container_client()
     for m in medias:
         try:
-            path = urlparse(media.url).path
+            path = urlparse(m.url).path
             prefix = "/" + settings.AZURE_STORAGE_CONTAINER + "/"
             blob_name = path[len(prefix):] if path.startswith(prefix) else path.lstrip("/")
             await container.delete_blob(blob_name, delete_snapshots="include")

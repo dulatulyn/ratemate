@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Header, UploadFile, File
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ratemate_app.core.config import settings
 from ratemate_app.schemas.token import Token
 from ratemate_app.db.session import get_db
-from ratemate_app.schemas.user import UserLogin, UserCreate
+from ratemate_app.schemas.user import UserLogin, UserCreate, ChangeUsernameRequest, ChangeEmailRequest, ProfileUpdateRequest
 from ratemate_app.services.user import UserService
 from ratemate_app.auth.security import create_access_token, decode_access_token
 from datetime import timedelta
@@ -71,7 +71,7 @@ async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
             detail="Email already registered",
         )
     
-    new_user = await UserService.create_user(db=db, user_create=user)
+    new_user = await UserService.create_user(db=db, user=user)
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -106,3 +106,182 @@ async def delete_me(authorization: Optional[str] = Header(None), db: AsyncSessio
     
     await UserService.delete_user(db, user)
     return
+
+@router.post("/me/change_username", response_model=Token, dependencies=[Depends(security)])
+async def change_username(req: ChangeUsernameRequest, authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+    
+    token = authorization.split(" ", 1)[1]
+    
+    try:
+        payload = decode_access_token(token)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+    
+    user = await UserService.get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    try:
+        await UserService.change_username_with_password(db, user, req.new_username, req.password)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid password or username token")
+    
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
+
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/me/change_email", status_code=status.HTTP_200_OK, dependencies=[Depends(security)])
+async def change_email(req: ChangeEmailRequest, authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+    
+    token = authorization.split(" ", 1)[1]
+    
+    try:
+        payload = decode_access_token(token)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+    
+    user = await UserService.get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    try:
+        await UserService.change_email_with_password(db, user, req.new_email, req.password)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid password or email taken")
+    
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    return {"success": True}
+
+
+@router.post("/me/profile", status_code=status.HTTP_200_OK, dependencies=[Depends(security)])
+async def update_profile(req: ProfileUpdateRequest, authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+    
+    token = authorization.split(" ", 1)[1]
+    try:
+        payload = decode_access_token(token)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+    
+    user = await UserService.get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    await UserService.update_profile_names(db, user, req.first_name, req.last_name)
+    return {"success": True}
+
+
+@router.get("/avatar/{username}")
+async def get_user_avatar(username: str, db: AsyncSession = Depends(get_db)):
+    user = await UserService.get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not user.avatar_url:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Avatar not set")
+    return {"url": user.avatar_url, "media_type": user.avatar_media_type}
+
+
+@router.post("/me/avatar", status_code=status.HTTP_201_CREATED, dependencies=[Depends(security)])
+async def upload_my_avatar(file: UploadFile = File(...), authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+    
+    token = authorization.split(" ", 1)[1]
+    try:
+        payload = decode_access_token(token)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+    
+    user = await UserService.get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    from ratemate_app.services.media import upload_user_avatar, delete_user_avatar_blob
+
+    if user.avatar_url:
+        await delete_user_avatar_blob(user.avatar_url)
+    url, media_type = await upload_user_avatar(user.id, file)
+    await UserService.update_avatar(db, user, url, media_type)
+
+    return {"url": url, "media_type": media_type}
+
+
+@router.put("/me/avatar", status_code=status.HTTP_200_OK, dependencies=[Depends(security)])
+async def update_avatar(file: UploadFile = File(...), authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+    
+    token = authorization.split(" ", 1)[1]
+    try:
+        payload = decode_access_token(token)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+    
+    user = await UserService.get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    from ratemate_app.services.media import upload_user_avatar, delete_user_avatar_blob
+
+    if user.avatar_url:
+        await delete_user_avatar_blob(user.avatar_url)
+    url, media_type = await upload_user_avatar(user.id, file)
+    await UserService.update_avatar(db, user, url, media_type)
+
+    return {"url": url, "media_type": media_type}
+
+
+@router.delete("/me/avatar", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(security)])
+async def delete_my_avatar(file: UploadFile = File(...), authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+    
+    token = authorization.split(" ", 1)[1]
+    try:
+        payload = decode_access_token(token)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+    
+    user = await UserService.get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    from ratemate_app.services.media import delete_user_avatar_blob
+
+    if user.avatar_url:
+        await delete_user_avatar_blob(user.avatar_url)
+    url, media_type = await upload_user_avatar(user.id, file)
+    await UserService.clear_avatar(db, user, url, media_type)
+
+    return 

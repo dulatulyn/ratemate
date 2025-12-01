@@ -22,5 +22,8 @@ class Settings(BaseSettings):
 
     AZURE_STORAGE_CONNECTION_STRING: str | None = None
     AZURE_STORAGE_CONTAINER: str | None = None
+    ADMIN_PANEL_KEY: str | None = None
+    ADMIN_BASIC_USERNAME: str | None = None
+    ADMIN_BASIC_PASSWORD: str | None = None
 
 settings = Settings()

@@ -37,6 +37,11 @@ async def init_db():
         await conn.execute(text("ALTER TABLE ratings ADD COLUMN IF NOT EXISTS comment_id INTEGER NULL"))
         await conn.execute(text("ALTER TABLE comments ADD COLUMN IF NOT EXISTS parent_id INTEGER NULL"))
         await conn.execute(text("ALTER TABLE media ADD COLUMN IF NOT EXISTS comment_id INTEGER NULL"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR NULL"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR NULL"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR NULL"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_media_type VARCHAR NULL"))
+
 
 async def close_db():
     await engine.dispose()

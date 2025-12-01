@@ -7,6 +7,8 @@ from ratemate_app.api.post import router as posts_router
 from ratemate_app.api.comment import router as comments_router
 from ratemate_app.api.follow import router as follows_router
 from ratemate_app.api.chat import router as chats_router
+from ratemate_app.api.admin import router as admin_router
+
 from ratemate_app.db.session import init_db
 from ratemate_app.db.base import import_models
 
@@ -37,6 +39,7 @@ app.include_router(posts_router, prefix="/posts", tags=["Posts"])
 app.include_router(comments_router, prefix="/comments", tags=["Comments"])
 app.include_router(follows_router, prefix="/follows", tags=["Follows"])
 app.include_router(chats_router, prefix="/chats", tags=["Chats"])
+app.include_router(admin_router, prefix="/admin", tags=["Admin"])
 
 from fastapi.openapi.utils import get_openapi
 

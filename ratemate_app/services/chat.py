@@ -49,3 +49,15 @@ async def list_recent_messages(db: AsyncSession, chat_id: int, limit: int = 50, 
     )
 
     return result.scalars().all()
+
+async def redact_message_content(db: AsyncSession, message_id: int, requester_id: int) -> Message:
+    msg = await db.get(Message, message_id)
+    if not msg:
+        raise ValueError("not_found")
+    if msg.sender_i != requester_id:
+        raise ValueError("forbidden")
+    msg.content = ""
+    
+    await db.commit()
+    await db.refresh(msg)
+    return msg

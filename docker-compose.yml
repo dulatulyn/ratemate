@@ -1,0 +1,32 @@
+version: "3.8"
+services:
+  db:
+    image: postgres:16-alpine
+    env_file: 
+      - .env.production
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [default]
+  backend:
+    build: .
+    env_file:
+      - .env.production
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:${{POSTGRES_PASSWORD}}@db:5432/ratemate
+    depends_on: [db]
+    networks: [default]
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx/nginx.conf:/etx/nginx/nginx.conf:ro
+    depends_on: [backend]
+    ports:
+      - "80:80"
+    networks: [default]
+volumes:
+  postgres_data:
+

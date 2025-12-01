@@ -6,10 +6,11 @@ from typing import Optional, Dict, Set
 from ratemate_app.db.session import get_db, AsyncSessionLocal
 from ratemate_app.auth.security import decode_access_token
 from ratemate_app.services.user import UserService
-from ratemate_app.services.chat import get_or_create_chat, send_message, list_recent_messages
+from ratemate_app.services.chat import get_or_create_chat, send_message, list_recent_messages, redact_message_content
 from ratemate_app.schemas.chat import ChatRead, ChatCreate, MessageCreate, MessageRead
 from ratemate_app.models.user import User
 from ratemate_app.models.chat import Chat
+from ratemate_app.models.message import Message
 
 router = APIRouter()
 security = HTTPBearer()
@@ -121,6 +122,53 @@ async def get_recent_chat_messages(chat_id: int, authorization: Optional[str] = 
     msgs = await list_recent_messages(db, chat_id, limit, offset)
 
     return msgs
+
+
+@router.delete("/messages/{message_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(security)])
+async def redact_message(message_id: int, authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+    
+    token = authorization.split(" ", 1)[1]
+    try:
+        jwt = decode_access_token(token)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token")
+    
+    username = jwt.get("sub")
+    if not username:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+    
+    user = await UserService.get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    msg = await db.get(Message, message_id)
+    if not msg:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found")
+
+    chat = await db.get(Chat, msg.chat_id)
+    if not chat:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
+
+    if user.id != msg.sender_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not the author")
+    
+    await redact_message_content(db, message_id, user.id)
+    conns = _chat_conns.get(chat.id if hasattr(chat, 'id') else msg.chat_id, set())
+
+    data = {"id": msg.id,
+            "chat_id": msg.chat_id ,
+            "sender_id": msg.sender_id ,
+            "content": "",
+            "created_at": msg.created_at.isoformat()}
+    
+    for ws in list(conns):
+        try:
+            await ws.send_json(data)
+        except:
+            conns.discard()
+    return
 
 
 @router.websocket("/ws/{chat_id}")

@@ -20,6 +20,24 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
+class ChangeUsernameRequest(BaseModel):
+    new_username: str
+    password: str
+
+    @field_validator('new_username')
+    @classmethod
+    def validate(cls, v: str) -> str:
+        if not re.match(r'[a-zA-Z0-9_-]{3, 30}$', v):
+            raise ValueError("Username must be 3-30 characters long with no special symbols")
+        return v
+    
+class ChangeEmailRequest(BaseModel):
+    new_email: EmailStr
+    password: str
+
+class ProfileUpdateRequest(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
 
 class UserSummary(BaseModel):
     id: int
