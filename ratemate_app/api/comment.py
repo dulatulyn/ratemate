@@ -297,4 +297,3 @@ async def delete_comment_endpoint(comment_id: int, authorization: Optional[str] 
     from ratemate_app.services.comment import delete_comment
     await delete_comment(db, comment)
     return
-

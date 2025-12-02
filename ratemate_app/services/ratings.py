@@ -42,19 +42,41 @@ async def get_post_rating_summary(db: AsyncSession, post_id: int) -> dict:
     avg, cnt = q.one()
     return {"post_id": post_id, "average": float(avg) if avg is not None else 0.0, "count": int(cnt)}
 
-
 async def get_comment_rating_summary(db: AsyncSession, comment_id: int) -> dict:
     q = await db.execute(select(func.avg(Rating.score), func.count(Rating.id)).where(Rating.comment_id == comment_id))
 
     avg, cnt = q.one()
     return {"comment_id": comment_id, "average": float(avg) if avg is not None else 0.0, "count": int(cnt)}
 
-
 async def delete_post_rating(db: AsyncSession, user_id: int, post_id: int) -> None:
     await db.execute(delete(Rating).where(Rating.user_id == user_id, Rating.post_id == post_id))
     await db.commit()
 
-
 async def delete_comment_rating(db: AsyncSession, user_id: int, comment_id: int) -> None:
     await db.execute(delete(Rating).where(Rating.user_id == user_id, Rating.comment_id == comment_id))
+    await db.commit()
+
+async def set_lowkey_rating(db: AsyncSession, user_id: int, lowkey_id: int, score: int) -> Rating:
+    existing = await db.execute(select(Rating).where(Rating.user_id == user_id, Rating.lowkey_id == lowkey_id))
+    row = existing.scalar_one_or_none()
+
+    if row:
+        row.score = score
+        await db.commit()
+        await db.refresh(row)
+
+    rating = Rating(user_id=user_id, lowkey_id=lowkey_id, score=score)
+    
+    db.add(rating)
+    await db.commit()
+    await db.refresh(rating)
+    return rating
+
+async def get_lowkey_rating_summary(db: AsyncSession, lowkey_id: int) -> dict:
+    q = await db.execute(select(func.avg(Rating.score), func.count(Rating.id)).where(Rating.lowkey_id == lowkey_id))
+    avg, cnt = q.one()
+    return {"lowkey_id": lowkey_id, "average": float(avg) if avg is not None else 0.0, "count": int(cnt)}
+
+async def delete_lowkey_rating(db: AsyncSession, user_id: int, lowkey_id: int) -> None:
+    await db.execute(delete(Rating).where(Rating.user_id == user_id, Rating.lowkey_id == lowkey_id))
     await db.commit()
