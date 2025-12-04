@@ -35,11 +35,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y sshpass
       - name: Copy to VM
         run: | 
-          sshpass -p "${{ secrets.VM_PASSWORD }}" scp -o StrictHostKeyChecking=no -P 22 \
+          sshpass -p "${{ secrets.VM_PASSWORD }}" scp -o StrictHostKeyChecking=no -o
+          PreferredAuthentications=password -o PublicAuthentication=no -P 22 \
           ${{ env.APP_NAME }}.tar.gz ${{ secrets.VM_USERNAME}}@${{ secrets.VM_HOST}}:/tmp/
       - name: Deploy on VM
         run: | 
-          sshpass -p "${{ secrets.VM_PASSWORD }}" ssh -o StrictHostKeyChecking=no -p 22 \ ${{ secrets.VM_USERNAME }}@${{ secrets.VM_HOST }} << 'EOF'
+          sshpass -p "${{ secrets.VM_PASSWORD }}" ssh -tt -o StrictHostKeyChecking=no -o StrictHostKeyChecking=no -o
+          PreferredAuthentications=password -o PublicAuthentication=no -p 22 \ ${{ secrets.VM_USERNAME }}@${{ secrets.VM_HOST }} << 'EOF'
           set -e
           gunzip -c /tmp/${{ env.APP_NAME }}.tar.gz | sudo docker load
           sudo mkdir -p /opt/ratemate && cd /opt/ratemate
