@@ -34,10 +34,8 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
       - name: Copy to VM
-        run: | 
-          sshpass -p "${{ secrets.VM_PASSWORD }}" scp -o StrictHostKeyChecking=no -o
-          PreferredAuthentications=password -o PublicAuthentication=no -P 22 \
-          ${{ env.APP_NAME }}.tar.gz ${{ secrets.VM_USERNAME}}@${{ secrets.VM_HOST}}:/tmp/
+        run: |
+          sshpass -p "${{ secrets.VM_PASSWORD }}" scp -o StrictHostKeyChecking=no -o PreferredAuthentications=password -o PubkeyAuthentication=no -P 22 "${{ env.APP_NAME }}.tar.gz" "${{ secrets.VM_USERNAME}}@${{ secrets.VM_HOST}}:/tmp/${{ env.APP_NAME }}.tar.gz"
       - name: Deploy on VM
         run: | 
           sshpass -p "${{ secrets.VM_PASSWORD }}" ssh -tt -o StrictHostKeyChecking=no -o StrictHostKeyChecking=no -o
