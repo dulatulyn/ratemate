@@ -56,6 +56,7 @@ jobs:
           ADMIN_BASIC_USERNAME=${{ secrets.ADMIN_BASIC_USERNAME }}
           ADMIN_BASIC_PASSWORD=${{ secrets.ADMIN_BASIC_PASSWORD }}
           EENV
+          sudo docker rm -f nginx ratemate postgres || true
           sudo docker run -d --name postgres --restart unless-stopped \
             -e POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
             -e POSTGRES_DB=ratemate \
