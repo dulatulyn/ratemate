@@ -43,7 +43,7 @@ jobs:
           gunzip -c /tmp/${{ env.APP_NAME }}.tar.gz | sudo docker load
           sudo mkdir -p /opt/ratemate && cd /opt/ratemate
           cat <<EENV | sudo tee .env >/dev/null
-          DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/ratemate
+          DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/ratemate 
           DATABASE_ECHO=False
           JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
           JWT_ALGORITHM=HS256
