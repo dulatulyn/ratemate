@@ -7,6 +7,7 @@ engine = create_async_engine(
     echo=settings.DATABASE_ECHO,
     future=True,
     pool_pre_ping=True,
+    connect_args={"ssl": False},
     pool_size=10,
     max_overflow=20
 )
