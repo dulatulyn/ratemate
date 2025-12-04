@@ -38,8 +38,7 @@ jobs:
           sshpass -p "${{ secrets.VM_PASSWORD }}" scp -o StrictHostKeyChecking=no -o PreferredAuthentications=password -o PubkeyAuthentication=no -P 22 "${{ env.APP_NAME }}.tar.gz" "${{ secrets.VM_USERNAME}}@${{ secrets.VM_HOST}}:/tmp/${{ env.APP_NAME }}.tar.gz"
       - name: Deploy on VM
         run: | 
-          sshpass -p "${{ secrets.VM_PASSWORD }}" ssh -tt -o StrictHostKeyChecking=no -o StrictHostKeyChecking=no -o
-          PreferredAuthentications=password -o PublicAuthentication=no -p 22 \ ${{ secrets.VM_USERNAME }}@${{ secrets.VM_HOST }} << 'EOF'
+          sshpass -p "${{ secrets.VM_PASSWORD }}" ssh -tt -o StrictHostKeyChecking=no -p 22 \ ${{ secrets.VM_USERNAME }}@${{ secrets.VM_HOST }} << 'EOF'
           set -e
           gunzip -c /tmp/${{ env.APP_NAME }}.tar.gz | sudo docker load
           sudo mkdir -p /opt/ratemate && cd /opt/ratemate
