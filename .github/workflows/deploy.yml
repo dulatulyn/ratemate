@@ -43,7 +43,7 @@ jobs:
           gunzip -c /tmp/${{ env.APP_NAME }}.tar.gz | sudo docker load
           sudo mkdir -p /opt/ratemate && cd /opt/ratemate
           cat <<EENV | sudo tee .env >/dev/null
-          DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/ratemate
+          DATABASE_URL=postgresql+asyncpg://postgres:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/ratemate?ssl=false
           DATABASE_ECHO=False
           JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
           JWT_ALGORITHM=HS256
@@ -62,13 +62,14 @@ jobs:
             -p 5432:5432 \
             -v postgres_data:/var/lib/postgresql/data \
             postgres:16-alpine
+          until sudo docker exec postgres  pg_isready -U postgres -h localhost; do sleep 1; done
           sudo docker run -d --name ratemate --restart unless-stopped \
             --link postgres:postgres \
             -p 8080:8080 \
             --env-file .env \
             ratemate:latest
           cat << 'NG' | sudo tee /tmp/nginx.conf >/dev/null 
-          server{ listen 80;
+          server { listen 80;
             location / {
               proxy_pass http://ratemate:8080;
               proxy_set_header Host $host;
