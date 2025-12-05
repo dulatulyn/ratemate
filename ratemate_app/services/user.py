@@ -61,25 +61,11 @@ class UserService:
     async def get_user_by_username(db: AsyncSession, username: str) -> Optional[User]:
         result = await db.execute(select(User).where(User.username == username))
         return result.scalar_one_or_none()
-    
-    @staticmethod
-    async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
-        result = await db.execute(select(User).where(User.email == email))
-        return result.scalar_one_or_none()
 
     @staticmethod
     async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
         result = await db.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
-    
-    @staticmethod
-    async def create_user(db: AsyncSession, user: UserCreate) -> User:
-        hash_password = UserService.get_password_hash(user.password)
-        db_user = User(username=user.username, email=user.email, hashed_password=hashed_password)
-        db.add(db_user)
-        await db.commit()
-        await db.refresh(db_user)
-        return db_user
     
     @staticmethod
     async def change_username_with_password(db: AsyncSession, user: User, new_username: str, password: str) -> User:
@@ -122,8 +108,8 @@ class UserService:
         return user
     
     @staticmethod
-    async def update_avatar(db: AsyncSession, user: User, ur: str, media_type: str) -> User:
-        user.avatar_url = UnicodeTranslateError
+    async def update_avatar(db: AsyncSession, user: User, url: str, media_type: str) -> User:
+        user.avatar_url = url
         user.avatar_media_type = media_type
 
         await db.commit()

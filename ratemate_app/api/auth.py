@@ -54,34 +54,44 @@ async def login_for_access_tokens(
 async def register_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     logger.info(f"Registration attempt for user: {user.username}")
 
-    db_user = await UserService.get_user_by_username(db, user.username)
-    if db_user:
-        logger.warning(f"Registration attempt with existing username: {user.username}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken",
+    try:
+        db_user = await UserService.get_user_by_username(db, user.username)
+        if db_user:
+            logger.warning(f"Registration attempt with existing username: {user.username}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already taken",
+            )
+        
+        db_user = await UserService.get_user_by_email(db, email=user.email)
+        if db_user:
+            logger.warning(f"Registration attempt with existing email: {user.email}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered",
+            )
+        
+        new_user = await UserService.create_user(db=db, user_create=user)
+
+        access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": new_user.username},
+            expires_delta=access_token_expires
         )
-    
-    db_user = await UserService.get_user_by_email(db, email=user.email)
 
-    if db_user:
-        logger.warning(f"Registration attempt with existing email: {user.email}")
+        logger.info(f"Successful registration for user: {user.username}")
+        return {
+            "access_token": access_token,
+            "token_type": "bearer"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Registration error: {str(e)}")
         raise HTTPException(
-             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration failed"
         )
-    
-    new_user = await UserService.create_user(db=db, user=user)
-
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data = {"sub": new_user.username},
-        expires_delta=access_token_expires
-    )
-
-    logger.info(f"Successful registration for user: {user.username}")
-    return {"access_token": access_token,
-            "token_type": "bearer"}
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(security)])

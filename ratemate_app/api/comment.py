@@ -46,7 +46,15 @@ async def create_comment_endpoint(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    data = payload if payload is not None else CommentCreate(post_id=post_id, content=content or "", parent_id=parent_id)
+    if payload is not None:
+        data = payload
+    else:
+        if post_id is None:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="post_id is required")
+        if not content:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="content is required")
+        data = CommentCreate(post_id=post_id, content=content, parent_id=parent_id)
+    
     if not data.content or not data.content.strip():
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Content must not be empty")
     

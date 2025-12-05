@@ -36,8 +36,8 @@ class CommentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     @field_serializer('media_urls')
-    def _ser_media_urls(self, v):
-        return v if v else [m.urls for m in getattr(self, 'media', [])]
+    def _ser_media_url(self, v):
+        return v if v else [m.url for m in getattr(self, 'media', [])]
 
 class RatingRequest(BaseModel):
     score: int

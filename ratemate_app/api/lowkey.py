@@ -149,7 +149,7 @@ async def list_lowkey_views_endpoint(lowkey_id: int, db: AsyncSession = Depends(
     return [LowkeyViewRead(viewer_id=vid, username=uname, viewed_at=vt) for (vid, uname, vt) in rows]
 
 
-@router.post("{lowkey_id}/rate", status_code=status.HTTP_201_CREATED, dependencies=[Depends(security)])
+@router.post("/{lowkey_id}/rate", status_code=status.HTTP_201_CREATED, dependencies=[Depends(security)])
 async def rate_lowkey(lowkey_id: int, payload: RatingRequest, authorization: Optional[str] = Header(None), db: AsyncSession = Depends(get_db)):
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
@@ -178,7 +178,7 @@ async def rate_lowkey(lowkey_id: int, payload: RatingRequest, authorization: Opt
             .where(Follow.follower_id == user.id, Follow.followed_id == target.owner_id)
         )
         if not exists.scalar_one_or_none():
-            raise HTTPException(status_code=status.http403, detail="not allowed")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="not allowed")
 
     await set_lowkey_rating(db, user.id, lowkey_id, payload.score)
 
@@ -204,7 +204,7 @@ async def delete_lowkey_rating_endpoint(lowkey_id: int, authorization: Optional[
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    target = await get_lowkey(Lowkey, lowkey_id)
+    target = await get_lowkey(db, lowkey_id)
     if not target:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lowkey not found")
     await delete_lowkey_rating(db, user.id, lowkey_id)

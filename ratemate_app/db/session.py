@@ -45,6 +45,8 @@ async def init_db():
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR NULL"))
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR NULL"))
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_media_type VARCHAR NULL"))
+        await conn.execute(text("ALTER TABLE users ALTER COLUMN first_name TYPE VARCHAR"))
+        await conn.execute(text("ALTER TABLE users ALTER COLUMN last_name TYPE VARCHAR"))
 
 
 async def close_db():

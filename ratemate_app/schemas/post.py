@@ -30,4 +30,4 @@ class PostRead(PostBase):
 
     @field_serializer('media_urls')
     def _ser_media_urls(self, v):
-        return v if v else [m.urls for m in getattr(self, 'media', [])]
+        return v if v else [m.url for m in getattr(self, 'media', [])]

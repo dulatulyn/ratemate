@@ -90,6 +90,10 @@ async def get_post(post_id: int, include_media: bool = Query(True), db: AsyncSes
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
     
     if include_media:
+        from ratemate_app.services.media import list_post_media
+        medias = await list_post_media(db, post_id)
+        media_reads = [MediaRead.model_validate(m, from_attributes=True) for m in medias]
+
         return PostRead.model_validate({
             "id": post.id,
             "owner_id": post.owner_id,
